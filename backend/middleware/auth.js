@@ -193,23 +193,27 @@ const skillSwapAccess = async (req, res, next) => {
 };
 
 // Rate limiting for sensitive operations
+const rateLimit = require("express-rate-limit");
+const { ipKeyGenerator } = require("express-rate-limit");
+
 const sensitiveOpLimit = (windowMs = 15 * 60 * 1000, max = 5) => {
-  const rateLimit = require('express-rate-limit');
-  
   return rateLimit({
     windowMs,
     max,
     message: {
       success: false,
-      message: 'Too many attempts, please try again later'
+      message: "Too many attempts, please try again later",
     },
     standardHeaders: true,
     legacyHeaders: false,
+
+    // ✅ Safe IPv6-compatible key generator
     keyGenerator: (req) => {
-      return req.user ? req.user.id : req.ip;
-    }
+      return req.user ? req.user.id : ipKeyGenerator(req);
+    },
   });
 };
+
 
 // Verify email middleware
 const requireEmailVerification = (req, res, next) => {
