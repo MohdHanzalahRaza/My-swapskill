@@ -21,7 +21,7 @@ export const ResetPassword = () => (
 export const About = () => (
   <div className="min-h-screen flex items-center justify-center">
     <div className="text-center">
-      <h1 className="text-2xl font-bold mb-4">About SkillzSwap</h1>
+      <h1 className="text-2xl font-bold mb-4">About SwapSkillz</h1>
       <p>Coming soon...</p>
     </div>
   </div>

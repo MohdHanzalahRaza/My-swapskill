@@ -63,7 +63,7 @@ mongoose.connect(process.env.MONGODB_URI, {
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     success: true,
-    message: 'SkillzSwap API is running!',
+    message: 'SwapSkillz API is running!',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV
   });

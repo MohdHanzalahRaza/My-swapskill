@@ -1,7 +1,7 @@
 {
-  "name": "skillzswap-backend",
+  "name": "SwapSkillz-backend",
   "version": "1.0.0",
-  "description": "Backend API for SkillzSwap - Trade Skills, Not Money",
+  "description": "Backend API for SwapSkillz - Trade Skills, Not Money",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -9,7 +9,7 @@
     "seed": "node utils/seedData.js"
   },
   "keywords": ["skillswap", "skills", "trading", "api"],
-  "author": "SkillzSwap Team",
+  "author": "SwapSkillz Team",
   "license": "MIT",
   "dependencies": {
     "express": "^4.18.2",
