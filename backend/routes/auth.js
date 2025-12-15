@@ -19,31 +19,36 @@ const { protect, sensitiveOpLimit } = require('../middleware/auth');
 const router = express.Router();
 
 // Validation rules
+// SIMPLIFIED register validation (relaxed)
 const registerValidation = [
   body('firstName')
     .trim()
+    .notEmpty()
+    .withMessage('First name is required')
     .isLength({ min: 2, max: 50 })
-    .withMessage('First name must be between 2 and 50 characters')
-    .matches(/^[a-zA-Z\s]+$/)
-    .withMessage('First name can only contain letters and spaces'),
-  
+    .withMessage('First name must be between 2 and 50 characters'),
+
   body('lastName')
     .trim()
+    .notEmpty()
+    .withMessage('Last name is required')
     .isLength({ min: 2, max: 50 })
-    .withMessage('Last name must be between 2 and 50 characters')
-    .matches(/^[a-zA-Z\s]+$/)
-    .withMessage('Last name can only contain letters and spaces'),
-  
+    .withMessage('Last name must be between 2 and 50 characters'),
+
   body('email')
+    .trim()
+    .notEmpty()
+    .withMessage('Email is required')
     .isEmail()
-    .normalizeEmail()
-    .withMessage('Please provide a valid email address'),
-  
+    .withMessage('Please provide a valid email address')
+    .normalizeEmail(),
+
+  // RELAXED password rule: only require length 6-128 (no regex)
   body('password')
+    .notEmpty()
+    .withMessage('Password is required')
     .isLength({ min: 6, max: 128 })
-    .withMessage('Password must be between 6 and 128 characters')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-    .withMessage('Password must contain at least one lowercase letter, one uppercase letter, and one number')
+    .withMessage('Password must be between 6 and 128 characters'),
 ];
 
 const loginValidation = [

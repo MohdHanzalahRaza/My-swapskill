@@ -52,10 +52,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Database connection
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
+mongoose.connect(process.env.MONGODB_URI)
 .then(() => console.log('✅ MongoDB Connected'))
 .catch(err => console.error('❌ MongoDB connection error:', err));
 
@@ -68,6 +65,9 @@ app.get('/api/health', (req, res) => {
     environment: process.env.NODE_ENV
   });
 });
+
+// Handle favicon requests silently
+app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 // API Routes
 app.use('/api/auth', authRoutes);

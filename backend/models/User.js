@@ -237,7 +237,7 @@ userSchema.virtual('age').get(function() {
 });
 
 // Index for search optimization
-userSchema.index({ email: 1 });
+// userSchema.index({ email: 1 });
 userSchema.index({ 'skillsOffered.name': 'text', 'skillsWanted.name': 'text' });
 userSchema.index({ 'location.city': 1, 'location.state': 1, 'location.country': 1 });
 

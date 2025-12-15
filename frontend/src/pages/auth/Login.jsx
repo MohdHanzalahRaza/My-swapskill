@@ -1,34 +1,37 @@
-import { useState } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
-import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
-import { useAuth } from '../../contexts/AuthContext'
-import LoadingSpinner from '../../components/ui/LoadingSpinner'
+import { useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import { useAuth } from "../../contexts/AuthContext";
+import LoadingSpinner from "../../components/ui/LoadingSpinner";
 
 const Login = () => {
-  const [showPassword, setShowPassword] = useState(false)
-  const { login, loading } = useAuth()
-  const navigate = useNavigate()
-  const location = useLocation()
+  const [showPassword, setShowPassword] = useState(false);
+  const { login, loading } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const from = location.state?.from?.pathname || '/dashboard'
+  const from = location.state?.from?.pathname || "/dashboard";
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-    setError
-  } = useForm()
+    setError,
+  } = useForm();
 
   const onSubmit = async (data) => {
-    const result = await login(data.email, data.password)
-    
+    const result = await login(data.email, data.password);
+
     if (result.success) {
-      navigate(from, { replace: true })
+      navigate(from, { replace: true });
     } else {
-      setError('root', { message: result.error })
+      // Show backend error in the root error block
+      setError("root", {
+        message: result.error || "Login failed. Please check your credentials.",
+      });
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -39,7 +42,7 @@ const Login = () => {
             Sign in to your account
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Or{' '}
+            Or{" "}
             <Link
               to="/register"
               className="font-medium text-primary-600 hover:text-primary-500"
@@ -69,14 +72,16 @@ const Login = () => {
                   type="email"
                   autoComplete="email"
                   className={`form-input ${
-                    errors.email ? 'border-error-300 focus:border-error-500 focus:ring-error-500' : ''
+                    errors.email
+                      ? "border-error-300 focus:border-error-500 focus:ring-error-500"
+                      : ""
                   }`}
-                  {...register('email', {
-                    required: 'Email is required',
+                  {...register("email", {
+                    required: "Email is required",
                     pattern: {
                       value: /^\S+@\S+$/i,
-                      message: 'Please enter a valid email address'
-                    }
+                      message: "Please enter a valid email address",
+                    },
                   })}
                 />
                 {errors.email && (
@@ -92,17 +97,19 @@ const Login = () => {
               <div className="mt-1 relative">
                 <input
                   id="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   className={`form-input pr-10 ${
-                    errors.password ? 'border-error-300 focus:border-error-500 focus:ring-error-500' : ''
+                    errors.password
+                      ? "border-error-300 focus:border-error-500 focus:ring-error-500"
+                      : ""
                   }`}
-                  {...register('password', {
-                    required: 'Password is required',
+                  {...register("password", {
+                    required: "Password is required",
                     minLength: {
                       value: 6,
-                      message: 'Password must be at least 6 characters'
-                    }
+                      message: "Password must be at least 6 characters",
+                    },
                   })}
                 />
                 <button
@@ -130,7 +137,10 @@ const Login = () => {
                   type="checkbox"
                   className="form-checkbox"
                 />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+                <label
+                  htmlFor="remember-me"
+                  className="ml-2 block text-sm text-gray-900"
+                >
                   Remember me
                 </label>
               </div>
@@ -154,7 +164,7 @@ const Login = () => {
                 {isSubmitting || loading ? (
                   <LoadingSpinner size="sm" color="white" />
                 ) : (
-                  'Sign in'
+                  "Sign in"
                 )}
               </button>
             </div>
@@ -166,15 +176,14 @@ const Login = () => {
                 <div className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">New to SwapSkillz?</span>
+                <span className="px-2 bg-white text-gray-500">
+                  New to SwapSkillz?
+                </span>
               </div>
             </div>
 
             <div className="mt-6">
-              <Link
-                to="/register"
-                className="w-full btn-outline text-center"
-              >
+              <Link to="/register" className="w-full btn-outline text-center">
                 Create an account
               </Link>
             </div>
@@ -182,7 +191,7 @@ const Login = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Login
+export default Login;

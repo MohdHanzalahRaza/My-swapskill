@@ -4,6 +4,12 @@ import toast from 'react-hot-toast'
 
 const AuthContext = createContext()
 
+// ---------- set base URL for all axios calls ----------
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+axios.defaults.baseURL = API_BASE_URL
+axios.defaults.withCredentials = true
+// -----------------------------------------------------------
+
 // Action types
 const AUTH_ACTIONS = {
   LOGIN_START: 'LOGIN_START',
@@ -26,11 +32,7 @@ const initialState = {
 const authReducer = (state, action) => {
   switch (action.type) {
     case AUTH_ACTIONS.LOGIN_START:
-      return {
-        ...state,
-        loading: true,
-        error: null,
-      }
+      return { ...state, loading: true, error: null }
     case AUTH_ACTIONS.LOGIN_SUCCESS:
       return {
         ...state,
@@ -48,23 +50,11 @@ const authReducer = (state, action) => {
         error: action.payload,
       }
     case AUTH_ACTIONS.LOGOUT:
-      return {
-        ...state,
-        user: null,
-        token: null,
-        loading: false,
-        error: null,
-      }
+      return { ...state, user: null, token: null, loading: false, error: null }
     case AUTH_ACTIONS.UPDATE_USER:
-      return {
-        ...state,
-        user: action.payload,
-      }
+      return { ...state, user: action.payload }
     case AUTH_ACTIONS.SET_LOADING:
-      return {
-        ...state,
-        loading: action.payload,
-      }
+      return { ...state, loading: action.payload }
     default:
       return state
   }
@@ -74,7 +64,7 @@ const authReducer = (state, action) => {
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState)
 
-  // Set auth header
+  // Keep axios auth header in sync when token changes
   useEffect(() => {
     if (state.token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${state.token}`
@@ -89,7 +79,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const loadUser = async () => {
       const token = localStorage.getItem('token')
-      
+
       if (!token) {
         dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false })
         return
@@ -98,13 +88,10 @@ export const AuthProvider = ({ children }) => {
       try {
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
         const response = await axios.get('/api/auth/me')
-        
+
         dispatch({
           type: AUTH_ACTIONS.LOGIN_SUCCESS,
-          payload: {
-            user: response.data.data,
-            token,
-          },
+          payload: { user: response.data.data, token },
         })
       } catch (error) {
         console.error('Failed to load user:', error)
@@ -117,33 +104,46 @@ export const AuthProvider = ({ children }) => {
     loadUser()
   }, [])
 
+  // Helper to extract meaningful error messages from server responses
+  const extractServerError = (error) => {
+    // axios error
+    const resp = error?.response?.data
+    if (!resp) return error.message || 'An error occurred'
+
+    // If express-validator errors array exists
+    if (Array.isArray(resp.errors) && resp.errors.length) {
+      // join all messages
+      return resp.errors.map((e) => e.msg || e.message).join(' — ')
+    }
+
+    // If server returned message field
+    if (resp.message) return resp.message
+
+    // fallback
+    return JSON.stringify(resp)
+  }
+
   // Login function
   const login = async (email, password) => {
     try {
       dispatch({ type: AUTH_ACTIONS.LOGIN_START })
 
-      const response = await axios.post('/api/auth/login', {
-        email,
-        password,
-      })
+      const response = await axios.post('/api/auth/login', { email, password })
+      const { user, token } = response.data.data || {}
 
-      const { user, token } = response.data.data
+      if (!token) {
+        const msg = 'Login succeeded but no token returned from server'
+        dispatch({ type: AUTH_ACTIONS.LOGIN_FAILURE, payload: msg })
+        toast.error(msg)
+        return { success: false, error: msg }
+      }
 
-      dispatch({
-        type: AUTH_ACTIONS.LOGIN_SUCCESS,
-        payload: { user, token },
-      })
-
+      dispatch({ type: AUTH_ACTIONS.LOGIN_SUCCESS, payload: { user, token } })
       toast.success('Login successful!')
-      return { success: true }
+      return { success: true, user, token }
     } catch (error) {
-      const message = error.response?.data?.message || 'Login failed'
-      
-      dispatch({
-        type: AUTH_ACTIONS.LOGIN_FAILURE,
-        payload: message,
-      })
-
+      const message = extractServerError(error)
+      dispatch({ type: AUTH_ACTIONS.LOGIN_FAILURE, payload: message })
       toast.error(message)
       return { success: false, error: message }
     }
@@ -155,24 +155,24 @@ export const AuthProvider = ({ children }) => {
       dispatch({ type: AUTH_ACTIONS.LOGIN_START })
 
       const response = await axios.post('/api/auth/register', userData)
+      // log response for debugging
+      console.log('AUTH REGISTER RESPONSE:', response.data)
 
-      const { user, token } = response.data.data
+      const { user, token } = response.data.data || {}
 
-      dispatch({
-        type: AUTH_ACTIONS.LOGIN_SUCCESS,
-        payload: { user, token },
-      })
+      if (!token) {
+        const msg = 'Registration succeeded but server did not return a token'
+        dispatch({ type: AUTH_ACTIONS.LOGIN_FAILURE, payload: msg })
+        toast.error(msg)
+        return { success: false, error: msg }
+      }
 
+      dispatch({ type: AUTH_ACTIONS.LOGIN_SUCCESS, payload: { user, token } })
       toast.success('Registration successful!')
-      return { success: true }
+      return { success: true, user, token }
     } catch (error) {
-      const message = error.response?.data?.message || 'Registration failed'
-      
-      dispatch({
-        type: AUTH_ACTIONS.LOGIN_FAILURE,
-        payload: message,
-      })
-
+      const message = extractServerError(error)
+      dispatch({ type: AUTH_ACTIONS.LOGIN_FAILURE, payload: message })
       toast.error(message)
       return { success: false, error: message }
     }
@@ -192,69 +192,44 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  // Update user function
-  const updateUser = (userData) => {
-    dispatch({
-      type: AUTH_ACTIONS.UPDATE_USER,
-      payload: userData,
-    })
-  }
+  // Forgot password etc. (unchanged)
+  const updateUser = (userData) => dispatch({ type: AUTH_ACTIONS.UPDATE_USER, payload: userData })
 
-  // Forgot password function
   const forgotPassword = async (email) => {
     try {
       const response = await axios.post('/api/auth/forgotpassword', { email })
       toast.success(response.data.message)
       return { success: true }
     } catch (error) {
-      const message = error.response?.data?.message || 'Failed to send reset email'
+      const message = extractServerError(error)
       toast.error(message)
       return { success: false, error: message }
     }
   }
 
-  // Reset password function
   const resetPassword = async (token, password) => {
     try {
-      const response = await axios.put(`/api/auth/resetpassword/${token}`, {
-        password,
-      })
-
-      const { user, token: authToken } = response.data.data
-
-      dispatch({
-        type: AUTH_ACTIONS.LOGIN_SUCCESS,
-        payload: { user, token: authToken },
-      })
-
+      const response = await axios.put(`/api/auth/resetpassword/${token}`, { password })
+      const { user, token: authToken } = response.data.data || {}
+      dispatch({ type: AUTH_ACTIONS.LOGIN_SUCCESS, payload: { user, token: authToken } })
       toast.success('Password reset successful!')
       return { success: true }
     } catch (error) {
-      const message = error.response?.data?.message || 'Password reset failed'
+      const message = extractServerError(error)
       toast.error(message)
       return { success: false, error: message }
     }
   }
 
-  // Update password function
   const updatePassword = async (currentPassword, newPassword) => {
     try {
-      const response = await axios.put('/api/auth/updatepassword', {
-        currentPassword,
-        newPassword,
-      })
-
-      const { user, token } = response.data.data
-
-      dispatch({
-        type: AUTH_ACTIONS.LOGIN_SUCCESS,
-        payload: { user, token },
-      })
-
+      const response = await axios.put('/api/auth/updatepassword', { currentPassword, newPassword })
+      const { user, token } = response.data.data || {}
+      dispatch({ type: AUTH_ACTIONS.LOGIN_SUCCESS, payload: { user, token } })
       toast.success('Password updated successfully!')
       return { success: true }
     } catch (error) {
-      const message = error.response?.data?.message || 'Password update failed'
+      const message = extractServerError(error)
       toast.error(message)
       return { success: false, error: message }
     }
@@ -280,11 +255,7 @@ export const AuthProvider = ({ children }) => {
 // Custom hook to use auth context
 export const useAuth = () => {
   const context = useContext(AuthContext)
-  
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
-  
+  if (!context) throw new Error('useAuth must be used within an AuthProvider')
   return context
 }
 
